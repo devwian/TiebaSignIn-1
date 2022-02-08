@@ -115,7 +115,7 @@ public class Run {
      */
     public void runSign() {
         // 当执行 5 轮所有贴吧还未签到成功就结束操作
-        Integer flag = 0;
+        Integer flag = 3;
         try {
             while (success.size() < followNum && flag > 0) {
                 LOGGER.info("-----第 {} 轮签到开始-----", 5 - flag + 1);
