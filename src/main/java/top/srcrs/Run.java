@@ -159,7 +159,7 @@ public class Run {
     }
 
     /**
-     * 发送运行结果到微信，通过 server 酱
+     * 发送运行结果到钉钉，通过钉钉机器人
      * 
      * @param sckey
      * @author srcrs
