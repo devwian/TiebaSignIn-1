@@ -37,6 +37,8 @@ public class Run {
     private List<String> follow = new ArrayList<>();
     /** 签到成功的贴吧列表 */
     private static List<String> success = new ArrayList<>();
+    /** 无法签到的贴吧 */
+    private static List<String> warning = new ArrayList<>();
     /** 用户的tbs */
     private String tbs = "";
     /** 用户所关注的贴吧数量 */
@@ -115,9 +117,9 @@ public class Run {
      */
     public void runSign() {
         // 当执行 5 轮所有贴吧还未签到成功就结束操作
-        Integer flag = 0;
+        Integer flag = 5;
         try {
-            while (success.size() < followNum && flag > 0) {
+            while (success.size() + warning.size() < followNum && flag > 0) {
                 LOGGER.info("-----第 {} 轮签到开始-----", 5 - flag + 1);
                 LOGGER.info("还剩 {} 贴吧需要签到", followNum - success.size());
                 Iterator<String> iterator = follow.iterator();
@@ -132,12 +134,18 @@ public class Run {
                         success.add(rotation);
                         LOGGER.info(rotation + ": " + "签到成功");
                     } else {
-                        LOGGER.warn(rotation + ": " + "签到失败");
+                        // LOGGER.warn("错误代码:" + post.getString("error_code"));
+                        if (post.getString("error_code").equals("340006")) {
+                            LOGGER.info(rotation + ": " + "贴吧被封禁");
+                            warning.add(rotation);
+                        } else {
+                            LOGGER.warn(rotation + ": " + "签到失败");
+                        }
                     }
                 }
                 if (success.size() != followNum) {
-                    // 为防止短时间内多次请求接口，触发风控，设置每一轮签到完等待 5 分钟
-                    Thread.sleep(1000 * 60 * 5);
+                    // 为防止短时间内多次请求接口，触发风控，设置每一轮签到完等待 1 分钟
+                    Thread.sleep(1000 * 60 * 1);
                     /**
                      * 重新获取 tbs 尝试解决以前第 1 次签到失败，剩余 4 次循环都会失败的错误。
                      */
@@ -159,10 +167,8 @@ public class Run {
      */
     public void send(String sckey) {
         /** 将要推送的数据 */
-        String text = "总: " + followNum + " - ";
-        text += "成功: " + success.size() + " 失败: " + (followNum - success.size());
         String desp = "共 " + followNum + " 贴吧\n\n";
-        desp += "成功: " + success.size() + " 失败: " + (followNum - success.size());
+        desp += "成功: " + success.size() + " 失败: " + (followNum - success.size() + " 错误:" + warning.size());
         String resMsg = "TiebaTask运行结果\n\n" + desp;
         String body = "{\"msgtype\": \"text\",\"text\": {\"content\": \"" + resMsg + "\"} }";
         StringEntity entityBody = new StringEntity(body, "UTF-8");
