@@ -137,6 +137,7 @@ public class Run {
                         // LOGGER.warn("错误代码:" + post.getString("error_code"));
                         if (post.getString("error_code").equals("340006")) {
                             LOGGER.info(rotation + ": " + "贴吧被封禁");
+                            iterator.remove();
                             warning.add(rotation);
                         } else {
                             LOGGER.warn(rotation + ": " + "签到失败");
