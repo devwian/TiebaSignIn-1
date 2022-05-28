@@ -37,6 +37,8 @@ public class Run {
     private List<String> follow = new ArrayList<>();
     /** 签到成功的贴吧列表 */
     private static List<String> success = new ArrayList<>();
+    /** 签到失败的贴吧 */
+    private static List<String> failed = new ArrayList<>();
     /** 无法签到的贴吧 */
     private static List<String> warning = new ArrayList<>();
     /** 用户的tbs */
@@ -55,10 +57,26 @@ public class Run {
         run.getTbs();
         run.getFollow();
         run.runSign();
-        LOGGER.info("共 {} 个贴吧 - 成功: {} - 失败: {}", followNum, success.size(), followNum - success.size());
-        if (args.length == 2) {
-            run.send(args[1]);
+        LOGGER.info(getResult());
+    }
+
+    public static String getResult() {
+        String desp = "共 " + followNum + " 贴吧\n\n";
+        desp += "成功: " + success.size() + " 失败: "
+                + (followNum - success.size() - warning.size() + " 错误:" + warning.size());
+        if (warning.size() > 0) {
+            desp += "\n\n错误贴吧: ";
+            for (String s : warning) {
+                desp += s + " ";
+            }
         }
+        if (failed.size() > 0) {
+            desp += "\n\n失败贴吧: ";
+            for (String s : failed) {
+                desp += s + " ";
+            }
+        }
+        return desp;
     }
 
     /**
@@ -121,7 +139,7 @@ public class Run {
         try {
             while (success.size() + warning.size() < followNum && flag > 0) {
                 LOGGER.info("-----第 {} 轮签到开始-----", 5 - flag + 1);
-                LOGGER.info("还剩 {} 贴吧需要签到", followNum - success.size());
+                LOGGER.info("还剩 {} 贴吧需要签到", followNum - success.size() - warning.size());
                 Iterator<String> iterator = follow.iterator();
                 while (iterator.hasNext()) {
                     String s = iterator.next();
@@ -129,12 +147,12 @@ public class Run {
                     String body = "kw=" + s + "&tbs=" + tbs + "&sign="
                             + Encryption.enCodeMd5("kw=" + rotation + "tbs=" + tbs + "tiebaclient!!!");
                     JSONObject post = Request.post(SIGN_URL, body);
-                    if ("0".equals(post.getString("error_code"))) {
+                    if ("0".equals(post.getString("error_code")) || "160002".equals(post.getString("error_code"))) {
                         iterator.remove();
                         success.add(rotation);
                         LOGGER.info(rotation + ": " + "签到成功");
                     } else {
-                        // LOGGER.warn("错误代码:" + post.getString("error_code"));
+                        LOGGER.warn("错误代码:" + post.getString("error_code"));
                         if (post.getString("error_code").equals("340006")) {
                             LOGGER.info(rotation + ": " + "贴吧被封禁");
                             iterator.remove();
@@ -154,6 +172,16 @@ public class Run {
                 }
                 flag--;
             }
+            /**
+             * 将签到失败的贴吧加入列表，以便后续查看
+             */
+            Iterator<String> iterator = follow.iterator();
+            while (iterator.hasNext()) {
+                String s = iterator.next();
+                if (!success.contains(s)) {
+                    failed.add(s);
+                }
+            }
         } catch (Exception e) {
             LOGGER.error("签到部分出现错误 -- " + e);
         }
@@ -168,8 +196,7 @@ public class Run {
      */
     public void send(String sckey) {
         /** 将要推送的数据 */
-        String desp = "共 " + followNum + " 贴吧\n\n";
-        desp += "成功: " + success.size() + " 失败: " + (followNum - success.size() + " 错误:" + warning.size());
+        String desp = getResult();
         String resMsg = "TiebaTask运行结果\n\n" + desp;
         String body = "{\"msgtype\": \"text\",\"text\": {\"content\": \"" + resMsg + "\"} }";
         StringEntity entityBody = new StringEntity(body, "UTF-8");
@@ -190,9 +217,9 @@ public class Run {
             }
             respContent = EntityUtils.toString(entity, "UTF-8");
             // LOGGER.info("{}", respContent);
-            LOGGER.info("server酱推送正常");
+            LOGGER.info("钉钉推送正常");
         } catch (Exception e) {
-            LOGGER.error("server酱发送失败 -- " + e);
+            LOGGER.error("钉钉发送失败 -- " + e);
         }
     }
 }
