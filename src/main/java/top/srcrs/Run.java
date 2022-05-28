@@ -58,6 +58,9 @@ public class Run {
         run.getFollow();
         run.runSign();
         LOGGER.info(getResult());
+        if (args.length == 2) {
+            run.send(args[1]);
+        }
     }
 
     public static String getResult() {
