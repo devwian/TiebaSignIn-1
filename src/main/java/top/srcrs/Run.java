@@ -199,8 +199,13 @@ public class Run {
      */
     public void send(String sckey) {
         /** 将要推送的数据 */
+        String resMsg;
         String desp = getResult();
-        String resMsg = "TiebaTask运行结果\n\n" + desp;
+        if (failed.size() == 0) {
+            resMsg = "TiebaTask运行正常\n\n" + desp;
+        } else {
+            resMsg = "TiebaTask运行出错!\n\n" + desp;
+        }
         String body = "{\"msgtype\": \"text\",\"text\": {\"content\": \"" + resMsg + "\"} }";
         StringEntity entityBody = new StringEntity(body, "UTF-8");
         HttpClient client = HttpClients.createDefault();
